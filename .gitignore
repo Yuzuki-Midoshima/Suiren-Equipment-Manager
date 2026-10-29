@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Maya scenes, caches, models, and generated data
+*.ma
+*.mb
+*.mel~
+*.abc
+*.fbx
+*.obj
+*.usd
+*.usda
+*.usdc
+*.ass
+*.mcx
+*.mcc
+*.mayaSwatches
+autosave/
+incrementalSave/
+
+# Character textures and source artwork
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.tif
+*.tiff
+*.exr
+*.hdr
+*.psd
+
+# Archives and release output
+*.zip
+*.7z
+*.rar
+dist/
+build/
+
+# Local source/reference material and working copies
+ab_rig_B/
+suiren_sisaku/
+
+# Editors, OS files, logs, and temporary files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+*.bak
+*~
+

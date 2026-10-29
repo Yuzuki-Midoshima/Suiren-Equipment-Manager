@@ -1,5 +1,7 @@
 # Suiren Equipment Manager
 
+[![CI](https://github.com/Yuzuki-Midoshima/Suiren-Equipment-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/Yuzuki-Midoshima/Suiren-Equipment-Manager/actions/workflows/ci.yml)
+
 Autodesk Maya 2026で、アプリボット公開のフリーリグ「スイレン」の装備を管理する
 個人制作の非公式拡張ツールです。コンストレイントや階層を直接操作せず、複数の武器を
 右手・左手・Worldへ切り替えられます。

@@ -16,7 +16,7 @@ from maya import cmds, mel
 BUTTON_TAG = "SuirenEquipmentManagerShelfButton"
 BUTTON_LABEL = "Suiren\nEquip"
 ANNOTATION = "Suiren Equipment Manager を開く"
-ICON = "commandButton.png"
+ICON_FILENAME = "suiren_equipment_manager.png"
 
 
 def _project_root() -> str:
@@ -31,6 +31,28 @@ def _project_root() -> str:
     raise RuntimeError(
         "register_shelf.py の場所を取得できません。"
         "drag_and_drop_install.py をMayaへドロップして登録してください。")
+
+
+def _icon_path() -> str:
+    """Return the project-local 32 px shelf icon."""
+    # Maya/Qt resolves Unicode paths more reliably with forward slashes.
+    return str(
+        Path(_project_root()) / "icons" / ICON_FILENAME
+    ).replace("\\", "/")
+
+
+def _icon_flags() -> dict:
+    """Use the custom image at every Maya shelf icon size."""
+    icon = _icon_path()
+    return {
+        "image": icon,
+        "image1": icon,
+        "image2": icon,
+        "image3": icon,
+        "style": "iconOnly",
+        "scaleIcon": True,
+        "imageOverlayLabel": "",
+    }
 
 
 def _launch_command() -> str:
@@ -94,28 +116,30 @@ def register() -> str:
 
     if matches:
         button = matches[0]
+        icon_flags = _icon_flags()
         cmds.shelfButton(
             button,
             edit=True,
             label=BUTTON_LABEL,
             annotation=ANNOTATION,
-            image=ICON,
             command=_launch_command(),
             sourceType="python",
             docTag=BUTTON_TAG,
+            **icon_flags
         )
         # Clean up duplicates left by older/manual registrations.
         for duplicate in matches[1:]:
             cmds.deleteUI(duplicate)
     else:
+        icon_flags = _icon_flags()
         button = cmds.shelfButton(
             parent=shelf,
             label=BUTTON_LABEL,
             annotation=ANNOTATION,
-            image=ICON,
             command=_launch_command(),
             sourceType="python",
             docTag=BUTTON_TAG,
+            **icon_flags
         )
 
     # saveAllShelves is a Maya MEL procedure rather than a cmds command.

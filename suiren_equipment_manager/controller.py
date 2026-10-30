@@ -10,6 +10,7 @@ from .rig_adapter import WEAPONS, by_key
 class EquipmentController:
     def __init__(self, cmds: Any, service: Any):
         self.cmds, self.service, self.ui = cmds, service, None
+        self._switching = False
 
     def attach(self, ui: Any) -> None:
         self.ui = ui
@@ -41,18 +42,43 @@ class EquipmentController:
                         "{} をセットアップしました".format(spec.label))
 
     def switch(self, key, space, keyframe=False):
+        status = SPACE_LABELS[space].split()[0].upper()
+        self._switching = True
+        try:
+            return self._switch(key, space, keyframe, status)
+        finally:
+            self._switching = False
+
+    def _switch(self, key, space, keyframe, status):
         if keyframe:
             return self.run(
                 lambda: self.service.switch(self.spec(key), space, True),
-                "{} に切替".format(SPACE_LABELS[space]))
+                status)
 
         def operation():
             applied = self.service.switch_and_apply_saved_offset(
                 self.spec(key), space)
-            message = "{} に切替".format(SPACE_LABELS[space])
+            message = status
             if applied:
                 message += " / 保存済み握り位置を適用"
             self._show_message(message)
+        return self.run(operation)
+
+    def channel_space_changed(self, key):
+        """Apply a saved grip after a manual Channel Box space change."""
+        if self._switching:
+            return None
+
+        def operation():
+            spec = self.spec(key)
+            space = self.service.current_space(spec)
+            applied = self.service.apply_current_saved_offset(spec)
+            status = SPACE_LABELS[space].split()[0].upper()
+            if applied:
+                status += " / SAVED GRIP"
+            self._show_message(status)
+            return applied
+
         return self.run(operation)
 
     def _show_message(self, message):

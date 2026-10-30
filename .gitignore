@@ -56,3 +56,7 @@ Desktop.ini
 *.bak
 *~
 
+# Project UI assets
+!icons/
+!icons/*.png
+

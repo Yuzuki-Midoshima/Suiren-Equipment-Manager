@@ -1,6 +1,6 @@
 """Compact, status-first PySide6 interface for Maya 2026."""
 
-from .constants import APP_NAME, SPACE_JA, WINDOW_OBJECT
+from .constants import APP_NAME, SPACE_ATTRIBUTE, SPACE_JA, WINDOW_OBJECT
 from .maya_utils import resolve, resolve_plug
 from .rig_adapter import WEAPONS
 
@@ -21,6 +21,7 @@ class EquipmentManagerUI:
         controller.attach(self)
         self.window = QtWidgets.QDialog(_maya_main_window())
         self.window.setObjectName(WINDOW_OBJECT)
+        self.window.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.window.setWindowTitle(APP_NAME)
         self.window.setMinimumWidth(240)
         self.window.setSizeGripEnabled(True)
@@ -211,6 +212,47 @@ class EquipmentManagerUI:
             widget.setSizePolicy(
                 QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         self.window.resize(400, self.window.sizeHint().height())
+        self._channel_spaces = {}
+        self._channel_time = controller.service.cmds.currentTime(query=True)
+        self._sync_channel_cache()
+        self._channel_timer = QtCore.QTimer(self.window)
+        self._channel_timer.setInterval(150)
+        self._channel_timer.timeout.connect(self._poll_channel_spaces)
+        self._channel_timer.start()
+
+    def _sync_channel_cache(self):
+        cmds = self.controller.service.cmds
+        for spec in WEAPONS:
+            try:
+                control = resolve(cmds, spec.control)
+                plug = control + "." + SPACE_ATTRIBUTE
+                if cmds.objExists(plug):
+                    self._channel_spaces[spec.key] = int(cmds.getAttr(plug))
+            except (RuntimeError, ValueError):
+                continue
+
+    def _poll_channel_spaces(self):
+        """Fallback for Maya scenes where attributeChange jobs do not fire."""
+        cmds = self.controller.service.cmds
+        current_time = cmds.currentTime(query=True)
+        if cmds.play(query=True, state=True) or current_time != self._channel_time:
+            self._channel_time = current_time
+            self._sync_channel_cache()
+            return
+
+        for spec in WEAPONS:
+            try:
+                control = resolve(cmds, spec.control)
+                plug = control + "." + SPACE_ATTRIBUTE
+                if not cmds.objExists(plug):
+                    continue
+                space = int(cmds.getAttr(plug))
+                previous = self._channel_spaces.get(spec.key, space)
+                self._channel_spaces[spec.key] = space
+                if space != previous and not self.controller._switching:
+                    self.controller.channel_space_changed(spec.key)
+            except (RuntimeError, ValueError):
+                continue
 
     @staticmethod
     def _badge(QtCore, QtWidgets, text):

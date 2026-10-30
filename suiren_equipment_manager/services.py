@@ -190,13 +190,31 @@ class EquipmentService:
             self.cmds.setAttr(
                 control + "." + SPACE_ATTRIBUTE, space)
             self._evaluate_space_change(control, space)
-            self.cmds.xform(control, worldSpace=True, matrix=matrix)
             if values:
                 self.cmds.setAttr(
                     control + ".translate", *values[:3], type="double3")
                 self.cmds.setAttr(
                     control + ".rotate", *values[3:], type="double3")
+            else:
+                # A saved grip already defines the destination-local
+                # transform. Avoid a redundant world-to-local decomposition.
+                self.cmds.xform(control, worldSpace=True, matrix=matrix)
         return bool(values)
+
+    def apply_current_saved_offset(self, spec: WeaponSpec) -> bool:
+        """Apply the saved local grip for the control's current space."""
+        control = resolve(self.cmds, spec.control)
+        space = int(self.cmds.getAttr(
+            control + "." + SPACE_ATTRIBUTE))
+        values = self._offsets(control).get(str(space))
+        if not values:
+            return False
+        with undo_chunk(self.cmds, "Suiren Equipment Channel Switch"):
+            self.cmds.setAttr(
+                control + ".translate", *values[:3], type="double3")
+            self.cmds.setAttr(
+                control + ".rotate", *values[3:], type="double3")
+        return True
 
     def key_equipment_state(
         self, spec: WeaponSpec, space: int, follow_enabled: bool

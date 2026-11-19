@@ -26,26 +26,45 @@ class EquipmentManagerUI:
         self.window.setMinimumWidth(240)
         self.window.setSizeGripEnabled(True)
         self.window.setStyleSheet("""
-            QDialog { background:#292c31; color:#e8eaed; }
-            QLabel#title { font-size:16px; font-weight:700; color:#8ecbff; padding:7px; }
-            QGroupBox { border:1px solid #4a5059; border-radius:5px; margin-top:12px;
-                        padding:12px 8px 8px; font-weight:600; }
+            QDialog, QWidget#content { background:#292c31; color:#e8eaed; }
+            QScrollArea, QScrollArea QWidget#qt_scrollarea_viewport {
+                background:#292c31; border:none;
+            }
+            QLabel#title { font-size:15px; font-weight:700; color:#8ecbff; padding:3px; }
+            QGroupBox { border:1px solid #4a5059; border-radius:5px; margin-top:9px;
+                        padding:9px 6px 5px; font-weight:600; }
             QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#b9dfff; }
-            QComboBox,QDoubleSpinBox { min-height:26px; background:#363a41;
-                                      border:1px solid #555c66; border-radius:3px; padding:2px 6px; }
-            QPushButton { min-height:31px; background:#444a53; border:1px solid #5b636e;
-                          border-radius:4px; padding:3px 10px; }
+            QComboBox,QDoubleSpinBox { min-height:22px; background:#363a41;
+                                      border:1px solid #555c66; border-radius:3px; padding:1px 4px; }
+            QPushButton { min-height:27px; background:#444a53; border:1px solid #5b636e;
+                          border-radius:4px; padding:2px 6px; }
             QPushButton:hover { background:#525a65; }
             QPushButton#primary { background:#286a9b; border-color:#4296d2; font-weight:700; }
             QPushButton#keyButton { background:#785629; border-color:#b7863e; }
-            QLabel#hint { color:#aeb5be; font-size:11px; padding:1px 3px 6px; }
+            QLabel#hint { color:#aeb5be; font-size:10px; padding:0px 2px 2px; }
             QLabel#detail { background:#202328; border:1px solid #47515c; border-radius:4px;
-                            padding:7px; color:#b9c3cf; }
+                            padding:4px; color:#b9c3cf; }
         """)
-        root = QtWidgets.QVBoxLayout(self.window); root.setSpacing(7)
+        window_layout = QtWidgets.QVBoxLayout(self.window)
+        window_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        content = QtWidgets.QWidget()
+        content.setObjectName("content")
+        root = QtWidgets.QVBoxLayout(content)
+        root.setContentsMargins(3, 3, 3, 3)
+        root.setSpacing(2)
+        scroll_area.setWidget(content)
+        window_layout.addWidget(scroll_area)
+        self.scroll_area = scroll_area
+        self.content_widget = content
         self.root_layout = root
         title = QtWidgets.QLabel("SUIREN EQUIPMENT MANAGER")
         title.setObjectName("title"); title.setAlignment(QtCore.Qt.AlignCenter); root.addWidget(title)
+        title.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         self.title_label = title
         self.compact_toggle = QtWidgets.QCheckBox("コンパクト表示")
         self.compact_toggle.setToolTip("アニメーション中に不要な編集項目と説明を畳みます")
@@ -54,8 +73,10 @@ class EquipmentManagerUI:
         weapon_box = QtWidgets.QGroupBox("武器と装備先")
         self.weapon_box = weapon_box
         weapon_layout = QtWidgets.QVBoxLayout(weapon_box)
+        weapon_layout.setContentsMargins(5, 8, 5, 4)
+        weapon_layout.setSpacing(2)
         self.weapon_layout = weapon_layout
-        weapon_label = QtWidgets.QLabel("操作する武器（この1つだけを変更）")
+        weapon_label = QtWidgets.QLabel("操作する武器")
         self.weapon_label = weapon_label
         weapon_label.setStyleSheet("font-weight:700; color:#d7e9f8; padding:2px;")
         weapon_layout.addWidget(weapon_label)
@@ -80,6 +101,8 @@ class EquipmentManagerUI:
         weapon_layout.addLayout(badges)
         self.visible_summary = QtWidgets.QLabel("シーン全体で表示中：確認中…")
         self.visible_summary.setObjectName("detail")
+        self.visible_summary.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         weapon_layout.addWidget(self.visible_summary)
         self.multi_mode = QtWidgets.QCheckBox("複数武器を同時表示")
         self.multi_mode.setToolTip(
@@ -114,19 +137,28 @@ class EquipmentManagerUI:
         offset_box = QtWidgets.QGroupBox("握り位置の微調整")
         self.offset_box = offset_box
         offset_layout = QtWidgets.QVBoxLayout(offset_box); self.fields = []
+        offset_layout.setContentsMargins(5, 8, 5, 4)
+        offset_layout.setSpacing(5)
         self.offset_destination = QtWidgets.QLabel("編集中・保存先：World")
         self.offset_destination.setStyleSheet(
             "background:#234d68; color:white; border-radius:4px;"
-            "font-weight:700; padding:6px;")
+            "font-weight:700; padding:4px;")
         offset_layout.addWidget(self.offset_destination)
         offset_hint = QtWidgets.QLabel(
             "武器コントローラーのローカル軸です。数値変更は武器へ即時反映されます。")
-        offset_hint.setObjectName("hint"); offset_layout.addWidget(offset_hint)
+        offset_hint.setObjectName("hint")
+        offset_hint.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        offset_layout.addWidget(offset_hint)
         for group_name in ("位置 (cm)", "回転 (度)"):
             row = QtWidgets.QHBoxLayout(); row.addWidget(QtWidgets.QLabel(group_name), 1)
             for axis in "XYZ":
                 row.addWidget(QtWidgets.QLabel(axis))
                 field = QtWidgets.QDoubleSpinBox(); field.setRange(-100000, 100000); field.setDecimals(4)
+                field.setMinimumWidth(36)
+                field.setSizePolicy(
+                    QtWidgets.QSizePolicy.Ignored,
+                    QtWidgets.QSizePolicy.Fixed)
                 self.fields.append(field); row.addWidget(field, 2)
             offset_layout.addLayout(row)
         offset_actions = QtWidgets.QHBoxLayout()
@@ -138,10 +170,12 @@ class EquipmentManagerUI:
         action_box = QtWidgets.QGroupBox("切替操作")
         self.action_box = action_box
         action_layout = QtWidgets.QVBoxLayout(action_box)
+        action_layout.setContentsMargins(5, 8, 5, 4)
+        action_layout.setSpacing(2)
         self.action_layout = action_layout
         self.action_hints = []
         action_columns = QtWidgets.QHBoxLayout()
-        action_columns.setSpacing(7)
+        action_columns.setSpacing(5)
         self.action_buttons_layout = action_columns
 
         switch_column = QtWidgets.QVBoxLayout()
@@ -150,8 +184,7 @@ class EquipmentManagerUI:
         self.switch_button = switch
         switch.setToolTip("切替先に保存済みの握り位置があれば自動で適用します")
         switch_column.addWidget(switch)
-        hint = QtWidgets.QLabel(
-            "保存済みの握り位置を自動適用します。未保存なら現在位置を維持します。")
+        hint = QtWidgets.QLabel("保存済み握りを適用")
         hint.setObjectName("hint")
         hint.setWordWrap(True)
         switch_column.addWidget(hint)
@@ -159,11 +192,11 @@ class EquipmentManagerUI:
 
         key_column = QtWidgets.QVBoxLayout()
         key_column.setSpacing(2)
-        key = QtWidgets.QPushButton("現在の装備状態をキーフレーム登録"); key.setObjectName("keyButton")
+        key = QtWidgets.QPushButton("装備状態をキー登録"); key.setObjectName("keyButton")
         self.key_button = key
         key.setToolTip("装備先・追従状態・位置・回転をまとめて現在フレームに記録します")
         key_column.addWidget(key)
-        hint = QtWidgets.QLabel("選択した装備先、追従ON/OFF、位置・回転をまとめて記録します。")
+        hint = QtWidgets.QLabel("装備状態をまとめて記録")
         hint.setObjectName("hint")
         hint.setWordWrap(True)
         key_column.addWidget(hint)
@@ -179,18 +212,25 @@ class EquipmentManagerUI:
         action_columns.addWidget(compact_save, 1, QtCore.Qt.AlignTop)
         action_columns.addLayout(key_column, 1)
         action_layout.addLayout(action_columns)
+        action_box.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         root.addWidget(action_box)
         self.detail = QtWidgets.QLabel("準備状態を確認中…"); self.detail.setObjectName("detail")
-        root.addWidget(self.detail)
+        self.detail.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        footer = QtWidgets.QHBoxLayout()
+        footer.setSpacing(4)
+        footer.addWidget(self.detail, 1)
         reset = QtWidgets.QPushButton("この武器を初期状態へリセット")
         self.reset_button = reset
         reset.setToolTip("選択中の武器だけをWorld・追従OFF・表示OFF・握り位置0へ戻します")
-        reset.setMaximumHeight(24)
+        reset.setMaximumHeight(20)
         reset.setStyleSheet(
-            "QPushButton { color:#c6c9ce; background:#34383e; border:1px solid #555b63;"
+            "QPushButton { min-height:16px; color:#c6c9ce; background:#34383e; border:1px solid #555b63;"
             " border-radius:3px; font-size:10px; padding:1px 6px; }"
             "QPushButton:hover { color:white; background:#763d3d; }")
-        root.addWidget(reset, 0, QtCore.Qt.AlignRight)
+        footer.addWidget(reset, 0, QtCore.Qt.AlignRight)
+        root.addLayout(footer)
 
         save.clicked.connect(lambda: controller.save(self.key()))
         compact_save.clicked.connect(lambda: controller.save(self.key()))
@@ -211,7 +251,7 @@ class EquipmentManagerUI:
                 self.key_button, self.reset_button):
             widget.setSizePolicy(
                 QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
-        self.window.resize(400, self.window.sizeHint().height())
+        self._fit_to_viewport(320)
         self._channel_jobs = []
         self._channel_spaces = {}
         self._channel_time = controller.service.cmds.currentTime(query=True)
@@ -231,6 +271,20 @@ class EquipmentManagerUI:
                     self._channel_spaces[spec.key] = int(cmds.getAttr(plug))
             except (RuntimeError, ValueError):
                 continue
+
+    def _fit_to_viewport(self, width=None):
+        """Fit the complete normal UI into a narrow Maya viewport."""
+        QtWidgets = self.QtWidgets
+        screen = self.window.screen() or QtWidgets.QApplication.primaryScreen()
+        available_height = screen.availableGeometry().height() if screen else 900
+        maximum_height = max(360, min(680, available_height - 120))
+        content_height = self.content_widget.sizeHint().height()
+        target_height = min(content_height + 2, maximum_height)
+        # Use the calculated height only for the initial fit.  Keep both axes
+        # user-resizable afterwards.
+        self.window.setMinimumHeight(min(content_height + 2, maximum_height))
+        self.window.setMaximumHeight(16777215)
+        self.window.resize(width or self.window.width(), target_height)
 
     def _poll_channel_spaces(self):
         """Fallback for Maya scenes where attributeChange jobs do not fire."""
@@ -287,19 +341,19 @@ class EquipmentManagerUI:
     def _badge(QtCore, QtWidgets, text):
         button = QtWidgets.QPushButton(text)
         button.setFocusPolicy(QtCore.Qt.NoFocus)
-        button.setMinimumHeight(34)
+        button.setMinimumHeight(26)
         return button
 
     @staticmethod
     def _state_button(QtWidgets, text):
         button = QtWidgets.QPushButton(text)
-        button.setCheckable(True); button.setMinimumHeight(34)
+        button.setCheckable(True); button.setMinimumHeight(26)
         return button
 
     @staticmethod
     def _badge_style(color):
         return (
-            "min-height:34px; max-height:34px; padding:0px 5px;"
+            "min-height:26px; max-height:26px; padding:0px 4px;"
             "background:{}; color:white; border-radius:5px; font-weight:700;"
         ).format(color)
 
@@ -323,21 +377,21 @@ class EquipmentManagerUI:
         self.weapon_label.setVisible(not compact)
         for hint in self.action_hints:
             hint.setVisible(not compact)
-        margin = 2 if compact else 9
-        spacing = 2 if compact else 7
+        margin = 2 if compact else 3
+        spacing = 2
         self.root_layout.setContentsMargins(margin, margin, margin, margin)
         self.root_layout.setSpacing(spacing)
         for layout in (self.weapon_layout, self.action_layout):
             layout.setContentsMargins(
-                3 if compact else 7,
-                2 if compact else 12,
-                3 if compact else 7,
-                2 if compact else 7)
-            layout.setSpacing(2 if compact else 6)
+                3 if compact else 5,
+                2 if compact else 8,
+                3 if compact else 5,
+                2 if compact else 4)
+            layout.setSpacing(2)
         self.compact_toggle.setText("コンパクト" if compact else "コンパクト表示")
         self.compact_toggle.setMaximumHeight(18 if compact else 16777215)
-        self.weapon.setFixedHeight(24 if compact else 30)
-        self.reset_button.setMaximumHeight(20 if compact else 24)
+        self.weapon.setFixedHeight(24 if compact else 26)
+        self.reset_button.setMaximumHeight(20)
         self.weapon_box.setTitle("" if compact else "武器と装備先")
         self.action_box.setTitle("" if compact else "切替操作")
         self.weapon_box.setFlat(compact)
@@ -350,22 +404,22 @@ class EquipmentManagerUI:
         self.action_box.setStyleSheet(compact_group_style)
         self.switch_button.setVisible(not compact)
         self.action_buttons_layout.setStretch(0, 0 if compact else 1)
-        self.key_button.setText("キー登録" if compact else "現在の装備状態をキーフレーム登録")
+        self.key_button.setText("キー登録" if compact else "装備状態をキー登録")
         self.compact_save_button.setVisible(compact)
         self.reset_button.setText("設定をリセット" if compact else "この武器を初期状態へリセット")
-        button_height = 34
+        button_height = 26
         for badge in (self.space_badge, self.follow_badge, self.visible_badge):
             badge.setMinimumHeight(button_height)
             badge.setMaximumHeight(44)
         for button in (
                 self.switch_button, self.compact_save_button,
                 self.key_button):
-            button.setMinimumHeight(31)
-            button.setMaximumHeight(40)
+            button.setMinimumHeight(25)
+            button.setMaximumHeight(32)
         self.window.setMinimumHeight(0)
         self.render()
         target_width = min(self.window.width(), 270) if compact else self.window.width()
-        self.window.resize(max(240, target_width), self.window.sizeHint().height())
+        self._fit_to_viewport(max(240, target_width))
     def _confirm_reset(self):
         result = self.QtWidgets.QMessageBox.question(
             self.window,
@@ -455,4 +509,6 @@ class EquipmentManagerUI:
             self.visible_summary.setText("シーン全体で表示中：確認できません")
             self.detail.setText("{} — 最初の操作時に自動セットアップされます".format(spec.label))
 
-    def show(self): self.window.show(); self.window.raise_(); self.window.activateWindow()
+    def show(self):
+        self._fit_to_viewport()
+        self.window.show(); self.window.raise_(); self.window.activateWindow()
